@@ -5,12 +5,11 @@
     <link rel="stylesheet" href="styles/style.css" />
   </head>
   <body>
-   <div class="sidebar">
-  <h2>Snippets</h2>
-  <input type="text" id="search" placeholder="Search..." />
-  <ul></ul>
-</div>
-
+    <div class="sidebar">
+      <h2>Snippets</h2>
+      <input type="text" id="search" placeholder="Search..." />
+      <ul></ul>
+    </div>
 
     <div class="main">
       <div class="left">
@@ -25,43 +24,28 @@
     </div>
 
     <script type="module">
-      fetchSnippets();
+      import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
 
       const SUPABASE_URL = "https://mqcouavdqgeivmoqlcml.supabase.co";
       const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1xY291YXZkcWdlaXZtb3FsY21sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ5NzA2NDIsImV4cCI6MjA2MDU0NjY0Mn0.uEXIaMOVpJ95n9iX7QIT9gEtLRxdYOEmdkfCBD4rQsw";
 
-      import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
       const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-      async function fetchSnippets() {
-        const { data, error } = await supabase
-          .from("snippets")
-          .select("*")
-// .order("created_at", { ascending: true });
-
-        if (error) {
-          console.error("Supabase Error:", error);
-          return;
-        }
-
-        window.snippets = {};
+      function renderSnippetList(snippets) {
         const sidebar = document.querySelector(".sidebar ul");
         sidebar.innerHTML = "";
+        window.snippets = {};
 
-        window.allSnippets = data;
-    renderSnippetList(data); // render initially
+        snippets.forEach(snippet => {
+          window.snippets[snippet.id] = snippet;
 
-    // search listener
-    document.getElementById("search").addEventListener("input", (e) => {
-      const keyword = e.target.value.toLowerCase();
-      const filtered = window.allSnippets.filter(snip =>
-        snip.title.toLowerCase().includes(keyword)
-      );
-      renderSnippetList(filtered);
-    });
+          const li = document.createElement("li");
+          li.textContent = snippet.title;
+          li.onclick = () => loadSnippet(snippet.id);
+          sidebar.appendChild(li);
+        });
 
-
-        if (data.length > 0) loadSnippet(data[0].id);
+        if (snippets.length > 0) loadSnippet(snippets[0].id);
       }
 
       function loadSnippet(id) {
@@ -74,6 +58,28 @@
         const text = document.getElementById("code").innerText;
         navigator.clipboard.writeText(text).then(() => {
           alert("Snippet copied!");
+        });
+      }
+
+      async function fetchSnippets() {
+        const { data, error } = await supabase
+          .from("snippets")
+          .select("*");
+
+        if (error) {
+          console.error("Supabase Error:", error);
+          return;
+        }
+
+        window.allSnippets = data;
+        renderSnippetList(data);
+
+        document.getElementById("search").addEventListener("input", (e) => {
+          const keyword = e.target.value.toLowerCase();
+          const filtered = window.allSnippets.filter(snip =>
+            snip.title.toLowerCase().includes(keyword)
+          );
+          renderSnippetList(filtered);
         });
       }
 
