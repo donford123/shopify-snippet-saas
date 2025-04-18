@@ -2,86 +2,75 @@
 <html>
   <head>
     <title>Shopify Snippet SaaS</title>
-   <link rel="stylesheet" href="styles/style.css" />
+    <link rel="stylesheet" href="styles/style.css" />
   </head>
   <body>
-  <div class="sidebar">
-    <h2>Snippets</h2>
-    <ul>
-      <li onclick="loadSnippet('cartUpsell')">🛒 Cart Drawer Upsell</li>
-      <li onclick="loadSnippet('stickyATC')">📌 Sticky Add-to-Cart</li>
-    </ul>
-  </div>
-
-  <div class="main">
-    <div class="left">
-      <h2>Copy the Snippet</h2>
-      <pre id="code"></pre>
-      <button onclick="copyCode()">Copy Snippet</button>
+    <div class="sidebar">
+      <h2>Snippets</h2>
+      <ul></ul> <!-- 🧼 Cleared list, JS will insert here -->
     </div>
-    <div class="right">
-      <h2>Live Preview</h2>
-      <iframe id="preview" srcdoc=""></iframe>
+
+    <div class="main">
+      <div class="left">
+        <h2>Copy the Snippet</h2>
+        <pre id="code"></pre>
+        <button onclick="copyCode()">Copy Snippet</button>
+      </div>
+      <div class="right">
+        <h2>Live Preview</h2>
+        <iframe id="preview" srcdoc=""></iframe>
+      </div>
     </div>
-  </div>
 
- <script type="module">
-  const SUPABASE_URL = "https://mqcouavdqgeivmoqlcml.supabase.co";
-  const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1xY291YXZkcWdlaXZtb3FsY21sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ5NzA2NDIsImV4cCI6MjA2MDU0NjY0Mn0.uEXIaMOVpJ95n9iX7QIT9gEtLRxdYOEmdkfCBD4rQsw";
+    <script type="module">
+      const SUPABASE_URL = "https://mqcouavdqgeivmoqlcml.supabase.co";
+      const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1xY291YXZkcWdlaXZtb3FsY21sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ5NzA2NDIsImV4cCI6MjA2MDU0NjY0Mn0.uEXIaMOVpJ95n9iX7QIT9gEtLRxdYOEmdkfCBD4rQsw";
 
-  import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
+      import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
+      const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+      async function fetchSnippets() {
+        const { data, error } = await supabase
+          .from("snippets")
+          .select("*")
+          .order("created_at", { ascending: true });
 
-  async function fetchSnippets() {
-    const { data, error } = await supabase
-      .from("snippets")
-      .select("*")
-      .order("created_at", { ascending: true });
+        if (error) {
+          console.error("Supabase Error:", error);
+          return;
+        }
 
-    if (error) {
-      console.error("Supabase Error:", error);
-      return;
-    }
+        window.snippets = {};
+        const sidebar = document.querySelector(".sidebar ul");
+        sidebar.innerHTML = "";
 
-    window.snippets = {};
-    const sidebar = document.querySelector(".sidebar ul");
-    sidebar.innerHTML = "";
+        data.forEach(snippet => {
+          window.snippets[snippet.id] = snippet;
 
-    data.forEach(snippet => {
-      // Save for later
-      window.snippets[snippet.id] = snippet;
+          const li = document.createElement("li");
+          li.textContent = snippet.title;
+          li.onclick = () => loadSnippet(snippet.id);
+          sidebar.appendChild(li);
+        });
 
-      // Create sidebar item
-      const li = document.createElement("li");
-      li.textContent = snippet.title;
-      li.onclick = () => loadSnippet(snippet.id);
-      sidebar.appendChild(li);
-    });
+        if (data.length > 0) loadSnippet(data[0].id);
+      }
 
-    // Load first snippet by default
-    if (data.length > 0) loadSnippet(data[0].id);
-  }
+      function loadSnippet(id) {
+        const snippet = window.snippets[id];
+        document.getElementById("code").innerText = snippet.code;
+        document.getElementById("preview").setAttribute("srcdoc", snippet.preview);
+      }
 
-  function loadSnippet(id) {
-    const { code, preview } = window.snippets[id];
-    document.getElementById("code").innerText = code;
-    document.getElementById("preview").setAttribute("srcdoc", preview);
-  }
+      function copyCode() {
+        const text = document.getElementById("code").innerText;
+        navigator.clipboard.writeText(text).then(() => {
+          alert("Snippet copied!");
+        });
+      }
 
-  function copyCode() {
-    const text = document.getElementById("code").innerText;
-    navigator.clipboard.writeText(text).then(() => {
-      alert("Snippet copied!");
-    });
-  }
-
-  fetchSnippets();
-  window.copyCode = copyCode; // bind to button
-</script>
-
-
-
-</body>
-
+      fetchSnippets();
+      window.copyCode = copyCode;
+    </script>
+  </body>
 </html>
