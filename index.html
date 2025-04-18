@@ -25,33 +25,22 @@
     </div>
   </div>
 
-  <script>
-    const snippets = {
-      cartUpsell: {
-        code: `<div class="cart-upsell">\n  <p>Customers also bought:</p>\n  <!-- insert recommended products here -->\n</div>`,
-        preview: `<div style="padding:1rem;border:1px solid #ccc;"><p>Customers also bought:</p><ul><li>🧢 Cap</li><li>👕 T-shirt</li></ul></div>`
-      },
-      stickyATC: {
-        code: `<script>\nwindow.addEventListener('scroll', function() {\n  // Sticky Add-to-Cart\n});\n</script>`,
-        preview: `<div style="position:sticky;bottom:10px;background:#000;color:#fff;padding:10px;">Add to Cart</div>`
-      }
-    };
+ <script>
+  async function fetchSnippets() {
+    const response = await fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vQCHPQk7CylQPPqM1Dii_jMj5YZxRooDPQbwCwTVkT-NVHM0rJRvGJsUZFotBYexxTeagbJcTP2_0DX/pub?output=csv");
+    const text = await response.text();
+    const rows = text.split("\n").slice(1); // remove header
+    const snippets = {};
 
-    function loadSnippet(name) {
-      document.getElementById('code').innerText = snippets[name].code;
-      document.getElementById('preview').setAttribute('srcdoc', snippets[name].preview);
-    }
+    rows.forEach(row => {
+      const [id, title, code, preview] = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/); // handle commas inside quotes
+      if (!id || !code || !preview) return;
 
-    function copyCode() {
-      const text = document.getElementById("code").innerText;
-      navigator.clipboard.writeText(text).then(() => {
-        alert("Snippet copied!");
-      });
-    }
+      // Build sidebar list
+      const li = document.createElement("li");
+      li.textContent = title.replace(/"/g, "");
+      li.onclick = () => loadSnippet(id.trim
 
-    // Load default snippet on page load
-    loadSnippet('cartUpsell');
-  </script>
 </body>
 
 </html>
