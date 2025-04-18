@@ -1,161 +1,136 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <title>Shopify Snippet SaaS</title>
-    <link rel="stylesheet" href="styles/style.css" />
-    <style>
-      body {
-        font-family: sans-serif;
-        margin: 0;
-        padding: 0;
-        background: #f7f7f7;
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Use Case Gallery</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f9fafb;
+    }
+    h1 {
+      font-size: 2rem;
+      font-weight: bold;
+      padding: 24px 40px 0;
+    }
+    .gallery {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 24px;
+      padding: 40px;
+    }
+    .snippet-card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 6px 12px rgba(0,0,0,0.08);
+      width: 280px;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+      padding: 16px;
+    }
+    .snippet-card:hover {
+      transform: translateY(-4px);
+    }
+    .snippet-preview {
+      width: 100%;
+      height: 180px;
+      border-radius: 8px;
+      border: 1px solid #e5e7eb;
+      margin-bottom: 12px;
+    }
+    .snippet-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin: 4px 0;
+    }
+    .snippet-description {
+      font-size: 0.9rem;
+      color: #6b7280;
+    }
+    .snippet-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .tag {
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      color: white;
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+  <h1>Use case gallery</h1>
+  <div class="gallery"></div>
+
+  <script type="module">
+    const SUPABASE_URL = "https://mqcouavdqgeivmoqlcml.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1xY291YXZkcWdlaXZtb3FsY21sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ5NzA2NDIsImV4cCI6MjA2MDU0NjY0Mn0.uEXIaMOVpJ95n9iX7QIT9gEtLRxdYOEmdkfCBD4rQsw";
+
+    import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
+    const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    function getTagColor(tag) {
+      const colors = {
+        marketing: '#facc15',
+        utility: '#38bdf8',
+        design: '#a78bfa',
+        analytics: '#34d399',
+        default: '#9ca3af'
+      };
+      return colors[tag.toLowerCase()] || colors.default;
+    }
+
+    function renderSnippetCards(snippets) {
+      const container = document.querySelector(".gallery");
+      container.innerHTML = "";
+
+      snippets.forEach(snippet => {
+        const card = document.createElement("div");
+        card.className = "snippet-card";
+        card.onclick = () => openSnippet(snippet.id);
+
+        card.innerHTML = `
+          <iframe class="snippet-preview" srcdoc="${snippet.preview}"></iframe>
+          <h3 class="snippet-title">${snippet.title}</h3>
+          <p class="snippet-description">${snippet.description || ''}</p>
+          <div class="snippet-tags">
+            ${snippet.tags?.split(',').map(tag => `<span class="tag" style="background-color: ${getTagColor(tag)}">${tag}</span>`).join('')}
+          </div>
+        `;
+
+        container.appendChild(card);
+      });
+    }
+
+    function openSnippet(id) {
+      const snippet = window.snippets[id];
+      alert("Selected snippet: " + snippet.title);
+      // Implement modal or full view if needed later
+    }
+
+    async function fetchSnippets() {
+      const { data, error } = await supabase
+        .from("snippets")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("Supabase error:", error);
+        return;
       }
 
-      .container {
-        padding: 40px;
-      }
+      window.snippets = {};
+      data.forEach(s => window.snippets[s.id] = s);
+      renderSnippetCards(data);
+    }
 
-      .grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-        gap: 20px;
-        margin-top: 30px;
-      }
-
-      .card {
-        background: white;
-        padding: 20px;
-        border-radius: 12px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-        cursor: pointer;
-        transition: all 0.2s ease-in-out;
-      }
-
-      .card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-      }
-
-      .card h3 {
-        margin: 0 0 10px;
-        font-size: 18px;
-      }
-
-      .viewer {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
-        background: white;
-        padding: 40px;
-        box-sizing: border-box;
-        z-index: 99;
-      }
-
-      .viewer-content {
-        display: flex;
-        gap: 40px;
-      }
-
-      .viewer .left,
-      .viewer .right {
-        flex: 1;
-      }
-
-      pre {
-        background: #f4f4f4;
-        padding: 15px;
-        border-radius: 6px;
-        overflow-x: auto;
-      }
-
-      iframe {
-        border: 1px solid #ccc;
-        border-radius: 6px;
-        width: 100%;
-        height: 400px;
-      }
-
-      .close-btn {
-        position: absolute;
-        top: 20px;
-        right: 20px;
-        background: black;
-        color: white;
-        padding: 10px 15px;
-        border: none;
-        border-radius: 6px;
-        cursor: pointer;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="container">
-      <h1>Use case gallery</h1>
-      <div class="grid" id="snippetGrid"></div>
-    </div>
-
-    <div class="viewer" id="viewer">
-      <button class="close-btn" onclick="closeViewer()">Close</button>
-      <div class="viewer-content">
-        <div class="left">
-          <h2>Copy the Snippet</h2>
-          <pre id="code"></pre>
-          <button onclick="copyCode()">Copy Code</button>
-        </div>
-        <div class="right">
-          <h2>Live Preview</h2>
-          <iframe id="preview"></iframe>
-        </div>
-      </div>
-    </div>
-
-    <script type="module">
-      const SUPABASE_URL = "https://mqcouavdqgeivmoqlcml.supabase.co";
-      const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1xY291YXZkcWdlaXZtb3FsY21sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ5NzA2NDIsImV4cCI6MjA2MDU0NjY0Mn0.uEXIaMOVpJ95n9iX7QIT9gEtLRxdYOEmdkfCBD4rQsw";
-
-      import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
-      const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-
-      const snippetGrid = document.getElementById("snippetGrid");
-      const viewer = document.getElementById("viewer");
-      const codeEl = document.getElementById("code");
-      const previewEl = document.getElementById("preview");
-
-      async function loadSnippets() {
-        const { data, error } = await supabase.from("snippets").select("*");
-        if (error) return console.error(error);
-
-        data.forEach(snippet => {
-          const card = document.createElement("div");
-          card.className = "card";
-          card.innerHTML = `<h3>${snippet.title}</h3><p>${snippet.category || ""}</p>`;
-          card.onclick = () => openViewer(snippet);
-          snippetGrid.appendChild(card);
-        });
-      }
-
-      function openViewer(snippet) {
-        codeEl.innerText = snippet.code;
-        previewEl.setAttribute("srcdoc", snippet.preview);
-        viewer.style.display = "block";
-      }
-
-      function closeViewer() {
-        viewer.style.display = "none";
-      }
-
-      function copyCode() {
-        navigator.clipboard.writeText(codeEl.innerText).then(() => {
-          alert("Code copied!");
-        });
-      }
-
-      loadSnippets();
-      window.copyCode = copyCode;
-      window.closeViewer = closeViewer;
-    </script>
-  </body>
+    fetchSnippets();
+  </script>
+</body>
 </html>
