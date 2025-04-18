@@ -25,62 +25,48 @@
     </div>
   </div>
 
- <script>
+ <script type="module">
+  const SUPABASE_URL = "https://mqcouavdqgeivmoqlcml.supabase.co";
+  const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1xY291YXZkcWdlaXZtb3FsY21sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ5NzA2NDIsImV4cCI6MjA2MDU0NjY0Mn0.uEXIaMOVpJ95n9iX7QIT9gEtLRxdYOEmdkfCBD4rQsw";
+
+  import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
+
+  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
   async function fetchSnippets() {
-    const response = await fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vQCHPQk7CylQPPqM1Dii_jMj5YZxRooDPQbwCwTVkT-NVHM0rJRvGJsUZFotBYexxTeagbJcTP2_0DX/pub?output=csv");
-    const text = await response.text();
+    const { data, error } = await supabase
+      .from("snippets")
+      .select("*")
+      .order("created_at", { ascending: true });
 
-    const rows = text.split("\n").slice(1);
-    const snippets = {};
+    if (error) {
+      console.error("Supabase Error:", error);
+      return;
+    }
 
-    rows.forEach(row => {
-      const cells = [];
-      let inQuotes = false, current = "";
+    window.snippets = {};
+    const sidebar = document.querySelector(".sidebar ul");
+    sidebar.innerHTML = "";
 
-      // Custom CSV parser for rows with commas in quotes
-      for (let i = 0; i < row.length; i++) {
-        const char = row[i];
-        if (char === '"' && row[i + 1] === '"') {
-          current += '"'; i++; // escaped quote
-        } else if (char === '"') {
-          inQuotes = !inQuotes;
-        } else if (char === ',' && !inQuotes) {
-          cells.push(current.trim());
-          current = "";
-        } else {
-          current += char;
-        }
-      }
-      cells.push(current.trim());
+    data.forEach(snippet => {
+      // Save for later
+      window.snippets[snippet.id] = snippet;
 
-      const [id, title, rawCode, rawPreview] = cells;
-
-      if (!id || !rawCode || !rawPreview) return;
-
-      const cleanCode = rawCode.replace(/^"|"$/g, "").replace(/""/g, '"').replace(/\\n/g, "\n");
-      const cleanPreview = rawPreview.replace(/^"|"$/g, "").replace(/""/g, '"').replace(/\\n/g, "\n");
-
-      // Add to sidebar
+      // Create sidebar item
       const li = document.createElement("li");
-      li.textContent = title?.replace(/^"|"$/g, "") || id;
-      li.onclick = () => loadSnippet(id.trim());
-      document.querySelector(".sidebar ul").appendChild(li);
-
-      // Store for loading
-      snippets[id.trim()] = {
-        code: cleanCode,
-        preview: cleanPreview
-      };
+      li.textContent = snippet.title;
+      li.onclick = () => loadSnippet(snippet.id);
+      sidebar.appendChild(li);
     });
 
-    window.snippets = snippets;
-    loadSnippet(Object.keys(snippets)[0]);
+    // Load first snippet by default
+    if (data.length > 0) loadSnippet(data[0].id);
   }
 
-  function loadSnippet(name) {
-    const snippet = window.snippets[name];
-    document.getElementById("code").innerText = snippet.code;
-    document.getElementById("preview").setAttribute("srcdoc", snippet.preview);
+  function loadSnippet(id) {
+    const { code, preview } = window.snippets[id];
+    document.getElementById("code").innerText = code;
+    document.getElementById("preview").setAttribute("srcdoc", preview);
   }
 
   function copyCode() {
@@ -91,7 +77,9 @@
   }
 
   fetchSnippets();
+  window.copyCode = copyCode; // bind to button
 </script>
+
 
 
 </body>
