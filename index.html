@@ -29,17 +29,70 @@
   async function fetchSnippets() {
     const response = await fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vQCHPQk7CylQPPqM1Dii_jMj5YZxRooDPQbwCwTVkT-NVHM0rJRvGJsUZFotBYexxTeagbJcTP2_0DX/pub?output=csv");
     const text = await response.text();
-    const rows = text.split("\n").slice(1); // remove header
+
+    const rows = text.split("\n").slice(1);
     const snippets = {};
 
     rows.forEach(row => {
-      const [id, title, code, preview] = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/); // handle commas inside quotes
-      if (!id || !code || !preview) return;
+      const cells = [];
+      let inQuotes = false, current = "";
 
-      // Build sidebar list
+      // Custom CSV parser for rows with commas in quotes
+      for (let i = 0; i < row.length; i++) {
+        const char = row[i];
+        if (char === '"' && row[i + 1] === '"') {
+          current += '"'; i++; // escaped quote
+        } else if (char === '"') {
+          inQuotes = !inQuotes;
+        } else if (char === ',' && !inQuotes) {
+          cells.push(current.trim());
+          current = "";
+        } else {
+          current += char;
+        }
+      }
+      cells.push(current.trim());
+
+      const [id, title, rawCode, rawPreview] = cells;
+
+      if (!id || !rawCode || !rawPreview) return;
+
+      const cleanCode = rawCode.replace(/^"|"$/g, "").replace(/""/g, '"').replace(/\\n/g, "\n");
+      const cleanPreview = rawPreview.replace(/^"|"$/g, "").replace(/""/g, '"').replace(/\\n/g, "\n");
+
+      // Add to sidebar
       const li = document.createElement("li");
-      li.textContent = title.replace(/"/g, "");
-      li.onclick = () => loadSnippet(id.trim
+      li.textContent = title?.replace(/^"|"$/g, "") || id;
+      li.onclick = () => loadSnippet(id.trim());
+      document.querySelector(".sidebar ul").appendChild(li);
+
+      // Store for loading
+      snippets[id.trim()] = {
+        code: cleanCode,
+        preview: cleanPreview
+      };
+    });
+
+    window.snippets = snippets;
+    loadSnippet(Object.keys(snippets)[0]);
+  }
+
+  function loadSnippet(name) {
+    const snippet = window.snippets[name];
+    document.getElementById("code").innerText = snippet.code;
+    document.getElementById("preview").setAttribute("srcdoc", snippet.preview);
+  }
+
+  function copyCode() {
+    const text = document.getElementById("code").innerText;
+    navigator.clipboard.writeText(text).then(() => {
+      alert("Snippet copied!");
+    });
+  }
+
+  fetchSnippets();
+</script>
+
 
 </body>
 
