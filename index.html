@@ -25,6 +25,8 @@
     </div>
 
     <script type="module">
+      fetchSnippets();
+
       const SUPABASE_URL = "https://mqcouavdqgeivmoqlcml.supabase.co";
       const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1xY291YXZkcWdlaXZtb3FsY21sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ5NzA2NDIsImV4cCI6MjA2MDU0NjY0Mn0.uEXIaMOVpJ95n9iX7QIT9gEtLRxdYOEmdkfCBD4rQsw";
 
@@ -46,14 +48,18 @@
         const sidebar = document.querySelector(".sidebar ul");
         sidebar.innerHTML = "";
 
-        data.forEach(snippet => {
-          window.snippets[snippet.id] = snippet;
+        window.allSnippets = data;
+    renderSnippetList(data); // render initially
 
-          const li = document.createElement("li");
-          li.textContent = snippet.title;
-          li.onclick = () => loadSnippet(snippet.id);
-          sidebar.appendChild(li);
-        });
+    // search listener
+    document.getElementById("search").addEventListener("input", (e) => {
+      const keyword = e.target.value.toLowerCase();
+      const filtered = window.allSnippets.filter(snip =>
+        snip.title.toLowerCase().includes(keyword)
+      );
+      renderSnippetList(filtered);
+    });
+
 
         if (data.length > 0) loadSnippet(data[0].id);
       }
