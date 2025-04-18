@@ -62,9 +62,7 @@
       }
 
       async function fetchSnippets() {
-        const { data, error } = await supabase
-          .from("snippets")
-          .select("*");
+        const { data, error } = await supabase.from("snippets").select("*");
 
         if (error) {
           console.error("Supabase Error:", error);
